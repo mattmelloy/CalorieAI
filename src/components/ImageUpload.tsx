@@ -1,5 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { Camera, Upload } from 'lucide-react';
+import CameraCapture from './CameraCapture';
 
 interface ImageUploadProps {
   onImageSelect: (file: File) => void;
@@ -9,6 +10,7 @@ interface ImageUploadProps {
 
 export default function ImageUpload({ onImageSelect, onAnalyze, isAnalyzing }: ImageUploadProps) {
   const [preview, setPreview] = useState<string | null>(null);
+  const [showCamera, setShowCamera] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -23,17 +25,16 @@ export default function ImageUpload({ onImageSelect, onAnalyze, isAnalyzing }: I
     }
   };
 
-  const handleCameraCapture = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-      // For now, just trigger file upload
-      // In a real app, we'd implement camera capture UI
-      stream.getTracks().forEach(track => track.stop());
-      fileInputRef.current?.click();
-    } catch (err) {
-      console.error('Camera access denied:', err);
-      fileInputRef.current?.click();
-    }
+  const handleCameraCapture = (imageData: string) => {
+    // Convert base64 to File object
+    fetch(imageData)
+      .then(res => res.blob())
+      .then(blob => {
+        const file = new File([blob], "camera-capture.jpg", { type: "image/jpeg" });
+        onImageSelect(file);
+        setPreview(imageData);
+        setShowCamera(false);
+      });
   };
 
   return (
@@ -73,7 +74,7 @@ export default function ImageUpload({ onImageSelect, onAnalyze, isAnalyzing }: I
         {!preview && (
           <div className="flex gap-4">
             <button
-              onClick={handleCameraCapture}
+              onClick={() => setShowCamera(true)}
               className="flex-1 flex items-center justify-center gap-2 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors"
             >
               <Camera size={20} />
@@ -89,6 +90,13 @@ export default function ImageUpload({ onImageSelect, onAnalyze, isAnalyzing }: I
           </div>
         )}
       </div>
+
+      {showCamera && (
+        <CameraCapture
+          onCapture={handleCameraCapture}
+          onClose={() => setShowCamera(false)}
+        />
+      )}
     </div>
   );
 }
