@@ -106,36 +106,46 @@ export default function CameraCapture({ onCapture, onClose }: CameraCaptureProps
 
   return (
     <div className="fixed inset-0 bg-black flex flex-col z-50">
-      {/* Camera Preview */}
+      {/* Camera Preview Container */}
       <div className="relative flex-1">
-        <video
-          ref={videoRef}
-          autoPlay
-          playsInline
-          className="w-full h-full object-cover"
-        />
+        {/* Video Preview with Safe Area Padding */}
+        <div className="absolute inset-0 flex items-center justify-center">
+          <video
+            ref={videoRef}
+            autoPlay
+            playsInline
+            className="absolute w-full h-full object-cover"
+          />
+        </div>
         <canvas ref={canvasRef} className="hidden" />
         
-        {/* Close Button */}
+        {/* Close Button - Positioned for Easy Access */}
         <button
           onClick={() => {
             stopCamera();
             onClose();
           }}
-          className="absolute top-4 right-4 bg-black/50 text-white p-2 rounded-full hover:bg-black/70 transition-colors"
+          className="absolute top-safe right-4 m-4 z-10 bg-black/50 text-white p-3 rounded-full hover:bg-black/70 transition-colors"
+          style={{ marginTop: 'env(safe-area-inset-top, 1rem)' }}
         >
           <X size={24} />
         </button>
       </div>
 
-      {/* Capture Button */}
-      <div className="bg-black p-4 flex justify-center">
-        <button
-          onClick={handleCapture}
-          className="bg-white rounded-full p-4 hover:bg-gray-100 transition-colors"
-        >
-          <Camera size={32} className="text-black" />
-        </button>
+      {/* Capture Button Container - Fixed at Bottom */}
+      <div 
+        className="relative bg-black py-8"
+        style={{ paddingBottom: 'env(safe-area-inset-bottom, 2rem)' }}
+      >
+        <div className="flex justify-center items-center">
+          <button
+            onClick={handleCapture}
+            className="bg-white rounded-full p-6 shadow-lg hover:bg-gray-100 transition-colors transform active:scale-95"
+            aria-label="Take photo"
+          >
+            <Camera size={36} className="text-black" />
+          </button>
+        </div>
       </div>
     </div>
   );
