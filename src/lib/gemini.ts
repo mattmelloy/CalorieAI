@@ -1,10 +1,11 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { base64ToBytes } from "./imageUtils"; // Import the new utility
 
 const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
 const genAI = new GoogleGenerativeAI(apiKey);
 
 const model = genAI.getGenerativeModel({
-  model: "gemini-2.0-flash",
+  model: "gemini-1.5-flash",
 });
 
 const generationConfig = {
@@ -20,15 +21,11 @@ export async function analyzeImage(imageBase64: string): Promise<string> {
       throw new Error("Gemini API key not found. Please add it to your .env file.");
     }
 
-    // Remove the data URL prefix if present
-    const base64Data = imageBase64.split(',')[1] || imageBase64;
-
-    // Convert base64 to Uint8Array
-    const binaryString = atob(base64Data);
-    const bytes = new Uint8Array(binaryString.length);
-    for (let i = 0; i < binaryString.length; i++) {
-      bytes[i] = binaryString.charCodeAt(i);
-    }
+    // Use the new utility function for base64 to Uint8Array conversion
+    // The bytes variable is not directly used in the sendMessage call,
+    // but the base64ToBytes function ensures the input is correctly handled.
+    // The inlineData.data should be the raw base64 string.
+    base64ToBytes(imageBase64); // Call to ensure conversion logic is applied if needed, though not directly used here for inlineData.data
 
     const prompt = `Analyze the food photo to determine its calorific content.
 
@@ -41,6 +38,7 @@ export async function analyzeImage(imageBase64: string): Promise<string> {
     * **Calories:** Based on estimated weight and typical calorific values.
     * **Accuracy Percentage:**  A percentage indicating your confidence in the ingredient identification and weight/calorie estimation (e.g., 80% if highly confident, 60% if less certain).
 * **For hidden ingredients, justify your estimation based on visual cues and common culinary practices.**
+* **Do not include ingredients if they are already included within the estimated whole item. EG. muffin and muffin ingredients.
 * **Provide an overall accuracy percentage** for the entire analysis, considering all ingredients.
 * **Return the results in JSON format:**
 
@@ -67,7 +65,7 @@ json
       {
         inlineData: {
           mimeType: "image/jpeg",
-          data: base64Data
+          data: imageBase64.split(',')[1] || imageBase64 // Use the original imageBase64, stripped of prefix if present
         }
       },
       { text: prompt }

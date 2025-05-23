@@ -1,6 +1,7 @@
 import React, { useRef, useState } from 'react';
 import { Camera, Upload } from 'lucide-react';
 import CameraCapture from './CameraCapture';
+import { base64ToFile } from '../lib/imageUtils'; // Import the new utility
 
 interface ImageUploadProps {
   onImageSelect: (file: File) => void;
@@ -25,16 +26,12 @@ export default function ImageUpload({ onImageSelect, onAnalyze, isAnalyzing }: I
     }
   };
 
-  const handleCameraCapture = (imageData: string) => {
-    // Convert base64 to File object
-    fetch(imageData)
-      .then(res => res.blob())
-      .then(blob => {
-        const file = new File([blob], "camera-capture.jpg", { type: "image/jpeg" });
-        onImageSelect(file);
-        setPreview(imageData);
-        setShowCamera(false);
-      });
+  const handleCameraCapture = async (imageData: string) => {
+    // Use the new utility function to convert base64 to File object
+    const file = await base64ToFile(imageData, "camera-capture.jpg", "image/jpeg");
+    onImageSelect(file);
+    setPreview(imageData);
+    setShowCamera(false);
   };
 
   return (
