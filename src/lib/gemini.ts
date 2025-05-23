@@ -1,18 +1,18 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleGenAI } from "@google/genai";
 import { base64ToBytes } from "./imageUtils"; // Import the new utility
 
 const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
-const genAI = new GoogleGenerativeAI(apiKey);
+const ai = new GoogleGenAI({ apiKey }); // Changed to pass an object
 
-const model = genAI.getGenerativeModel({
-  model: "gemini-1.5-flash",
-});
+const modelName = "gemini-2.5-flash-preview-04-17";
 
-const generationConfig = {
+const config = {
   temperature: 0.1,
   topP: 0.95,
   topK: 40,
   maxOutputTokens: 8192,
+  // The example also had responseMimeType: 'text/plain', but for image analysis, we likely want JSON.
+  // I will keep the existing generation config parameters for now, as they are more relevant to output quality.
 };
 
 export async function analyzeImage(imageBase64: string): Promise<string> {
@@ -56,25 +56,34 @@ json
   "overall_accuracy_percentage": ...
 }`;
 
-    const chatSession = model.startChat({
-      generationConfig,
-      history: [],
+    const contents = [
+      {
+        role: 'user',
+        parts: [
+          {
+            inlineData: {
+              mimeType: "image/jpeg",
+              data: imageBase64.split(',')[1] || imageBase64
+            }
+          },
+          { text: prompt }
+        ],
+      },
+    ];
+
+    const result = await ai.models.generateContentStream({
+      model: modelName,
+      config, // Changed from generationConfig to config
+      contents,
     });
 
-    const result = await chatSession.sendMessage([
-      {
-        inlineData: {
-          mimeType: "image/jpeg",
-          data: imageBase64.split(',')[1] || imageBase64 // Use the original imageBase64, stripped of prefix if present
-        }
-      },
-      { text: prompt }
-    ]);
-
-    const response = result.response.text();
+    let fullResponse = '';
+    for await (const chunk of result) { // Changed from result.stream to result
+      fullResponse += chunk.text;
+    }
     
     // Extract JSON from the response
-    const jsonMatch = response.match(/\{[\s\S]*\}/);
+    const jsonMatch = fullResponse.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
       throw new Error('No valid JSON found in response');
     }
